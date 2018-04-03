@@ -30,6 +30,7 @@
     String callbackID = "";
     String formular = "formular";
     String orgFileName = "";
+	double fileSize = -1;
     FileItem fileUpload = null;
     request.setCharacterEncoding("UTF-8");
     ServletRequestContext src = new ServletRequestContext(request);
@@ -95,6 +96,7 @@
        uploadedFilename = tmpDir + File.separator + filename;
        File uploadedFile = new File(uploadedFilename);
        fileUpload.write(uploadedFile);
+	   fileSize = uploadedFile.length()/(1024*1024); //1024*1024 is the size for megbytes
    }
 
    if (callbackID == null)
@@ -102,8 +104,9 @@
    if (callbackHandler == null)
          callbackHandler = "parent.uploadFilename";
 
-   out.println("<body onload=\"" + callbackHandler + "('" + filename.replace('\\', '/') + "','"+callbackID+"','"+orgFileName+"');\">");
+   out.println("<body onload=\"" + callbackHandler + "('" + filename.replace('\\', '/') + "','"+callbackID+"','"+orgFileName+"','" + fileSize + "');\">");
 //    out.println("Fil uploadet og skrevet til: " + uploadedFilename);
+	out.println("fileSize:" + fileSize);
    out.println("</body>");
 %>
 </html>

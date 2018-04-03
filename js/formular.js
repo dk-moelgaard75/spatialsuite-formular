@@ -91,12 +91,28 @@ Formular = SpatialMap.Class ({
 	groupedLayers: [],
     
     _listeners: [],
+    maxUploadFileSize: 100,
+    miniMapObject: null,
+    miniMapHasLoaded: false,
+	miniMapId: null,
+	miniMapLoaderUrl: null,
+    miniMapDiv: null,
+    miniMapStyle: 'height:100%; width:100%; display:none;',
+    miniMapInfoDiv: null,
+    miniMapInfoDivStyle: 'height:200px; width: 400px; overflow:auto;',
+    miniMapThemeDiv: null,
+    miniMapThemeDivStyle: 'width:300px;',
+    miniMapLegendDiv: null,
+    miniMapLegendDivStyle: 'width:300px;',
+    miniMapSearchDiv: null,
+    miniMapSearchDivStyle: 'width:300px;',
+    miniMapReportAllLayers: true,
+
     
     initialize: function (options) {
         SpatialMap.Util.extend (this, options);
         this.getConfig();
     },
-    
     getConfig: function () {
         var params = {
             page: this.configpage,
@@ -110,6 +126,11 @@ Formular = SpatialMap.Class ({
             data: params,
             url: 'spatialmap',
             success: SpatialMap.Function.bind (function (data, textStatus, jqXHR) {
+
+                window.addEventListener('MINIMAP_API_LOADED', function() {
+                    console.log('MINIMAP_API_LOADED happend')
+                    //MiniMap.createMiniMap(args);
+                });
 
                 this.configData = data;
 
@@ -470,7 +491,7 @@ Formular = SpatialMap.Class ({
                         }
                     } else {
                         if (this.bootstrap) {
-                            jQuery('.buttons #submit').click(SpatialMap.Function.bind(this.submit,this));
+                            jQuery('.buttons #subm  it').click(SpatialMap.Function.bind(this.submit,this));
                         }
                     }
 
@@ -503,10 +524,47 @@ Formular = SpatialMap.Class ({
                 //Bootstrap - fjern loading når filen er hentet
                 jQuery('#content').removeClass('content-loading');
 
+            }, this),
+            complete: SpatialMap.Function.bind( function (data,status) {
+                var tmp = jQuery('#' + this.miniMapDiv);
+                debugger;
+                if (this.miniMapId) {
+                    jQuery.ajax({
+                        url: this.miniMapLoaderUrl,
+                        dataType: "script",
+                        async: false,
+                        success: SpatialMap.Function.bind( function (data) {
+                            this.miniMapHasLoaded = true;
+                        },this)
+                    });
+                    var args = {
+                        mapDiv: this.miniMapDiv,
+                        minimapId: this.miniMapId,
+                        initCallback: SpatialMap.Function.bind(function (mmObj) {
+                            this.miniMapObject = mmObj;
+                        }, this)
+                    };
+                    if (this.miniMapSearchDiv) {
+                        args['searchDiv'] = this.miniMapSearchDiv;
+                    }
+                    if (this.miniMapThemeDiv) {
+                        args['themeDiv'] = this.miniMapThemeDiv;
+                    }
+                    if (this.miniMapInfoDiv) {
+                        args['infoDiv'] = this.miniMapInfoDiv;
+                    }
+                    debugger;
+                    if (this.miniMapHasLoaded)                    {
+                        MiniMap.createMiniMap(args);
+                    } else {
+                        console.log('MiniMap hasn´t loaded');
+                    }
+                }
             },this)
         });
         
         jQuery('#loading').hide();
+
     },
     
     addInput: function (node,contentcontainer,options) {
@@ -879,6 +937,83 @@ Formular = SpatialMap.Class ({
 
 
             break;
+            case 'minimap':
+				if (typeof node.attr('div') !== 'undefined') {
+					this.miniMapDiv = node.attr('div');
+				} else {
+					contentcontainer.append('<div id="'+id+'_row">Fejl - minimap angivet, men DIV tag er ikke angivet</div> ')
+				}
+				var tmpMiniMapStyle = node.find('minimapstyle').text();
+				if (typeof (tmpMiniMapStyle) !== 'undefined' && tmpMiniMapStyle != null && tmpMiniMapStyle.length > 0) {
+				    this.miniMapStyle = tmpMiniMapStyle;
+                }
+                var tmpInfoDiv = node.find('infodiv').text();
+				if (typeof (tmpInfoDiv) !== 'undefined' && tmpInfoDiv != null && tmpInfoDiv.length > 0) {
+				    this.miniMapInfoDiv = tmpInfoDiv;
+                }
+                var tmpInfoDivStyle = node.find('infodivstyle').text();
+                if (typeof (tmpInfoDivStyle) !== 'undefined' && tmpInfoDivStyle != null && tmpInfoDivStyle.length > 0) {
+                    this.miniMapInfoDivStyle = tmpInfoDivStyle;
+                }
+                var tmpThemeDiv = node.find('themediv').text();
+                if (typeof (tmpThemeDiv) !== 'undefined' && tmpThemeDiv != null && tmpThemeDiv.length > 0) {
+                    this.miniMapThemeDiv = tmpThemeDiv;
+                }
+                var tmpThemeDivStyle = node.find('themedivstyle').text();
+                if (typeof (tmpThemeDivStyle) !== 'undefined' && tmpThemeDivStyle != null && tmpThemeDivStyle.length > 0) {
+                    this.miniMapThemeDivStyle = tmpInfoDivStyle;
+                }
+                var tmpSearchDiv = node.find('searchdiv').text();
+                if (typeof (tmpSearchDiv) !== 'undefined' && tmpSearchDiv != null && tmpSearchDiv.length > 0) {
+                    this.miniMapSearchDiv = tmpSearchDiv;
+                }
+                var tmpSearchDivStyle = node.find('searchdivstyle').text();
+                if (typeof (tmpSearchDivStyle) !== 'undefined' && tmpSearchDivStyle != null && tmpSearchDivStyle.length > 0) {
+                    this.miniMapSearchDivStyle = tmpSearchDivStyle;
+                }
+                var tmpReportAllLayers = node.find('reportalllayers').text();
+                if (typeof (tmpReportAllLayers) !== 'undefined' && tmpReportAllLayers != null && tmpReportAllLayers.length > 0) {
+                    this.miniMapReportAllLayers = tmpReportAllLayers.toLowerCase();
+                }
+                debugger;
+				this.miniMapLoaderUrl = node.find('mmloader').text();
+                this.miniMapId = node.find('id').text();
+
+
+                contentcontainer.append('<tr id="'+id+'_row"><td colspan="2" align="left"><div id='+this.miniMapDiv+' style=' + this.miniMapStyle + '></div></td></tr>' );
+                var tmpId = 200000 + counter;
+                var newId = 'minimap_' + tmpId;
+                if (this.miniMapThemeDiv) {
+                    contentcontainer.append('<tr id="'+newId+'_row"><td colspan="2" align="left"><div id='+this.miniMapThemeDiv+' style=' + this.miniMapThemeDivStyle + '></div></td></tr>' );
+                    tmpId++;
+                    newId = 'minimap_' + tmpId;
+                }
+                if (this.miniMapSearchDiv) {
+                    contentcontainer.append('<tr id="'+newId+'_row"><td colspan="2" align="left"><div id='+this.miniMapSearchDiv+' style=' + this.miniMapSearchDivStyle + '></div></td></tr>' );
+                    tmpId++;
+                    newId = 'minimap_' + tmpId;
+                }
+                if (this.miniMapInfoDiv) {
+                    contentcontainer.append('<tr id="'+newId+'_row"><td colspan="2" align="left"><div id='+this.miniMapInfoDiv+' style=' + this.miniMapInfoDivStyle + '></div></td></tr>' );
+                    tmpId++;
+                    newId = 'minimap_' + tmpId;
+                }
+                contentcontainer.append('<tr id="'+newId+'_row"><td colspan="2" align="left"><div style="clear: both"></div></td></tr>' );
+
+                //document.getElementsByTagName("head")[0].appendChild(mmLoaderScript);
+
+                /*
+                var mmMapDivScript = document.createElement('script')
+                mmMapDivScript.type = "text/javascript";
+                var mmMapDivJs = "window.addEventListener('load', MiniMap.createMiniMap({mapDiv: '"+ this.miniMapDiv + "', minimapId:'" + this.miniMapId+"''}));"
+                mmMapDivScript.src = mmMapDivJs;
+                document.head.appendChild(mmMapDivScript);
+                */
+
+
+
+                break;
+
             case 'maptools':
                 
                 if (this.bootstrap === true) {
@@ -923,7 +1058,7 @@ Formular = SpatialMap.Class ({
                 this.mapId = id;
                 
                 if (this.bootstrap === true) {
-                    contentcontainer.append('<div id="'+id+'_row" class="form-group mapcontainer"><label for="'+id+'">'+node.attr('displayname')+(req ? ' <span class="required">*</span>':'')+'</label><div id="'+id+'" class="map'+(className ? ' '+className : '')+'"></div><div class="features_attributes"></div></div>');
+                    contentcontainer.append('<div id="'+id+'_row" class="form-group mapcontainer"><label for="'+id+'">'+ typeof(node.attr('displayname')) !== 'undefined' ? node.attr('displayname') : 'Kort'   +(req ? ' <span class="required">*</span>':'')+'</label><div id="'+id+'" class="map'+(className ? ' '+className : '')+'"></div><div class="features_attributes"></div></div>');
                 } else {
                     contentcontainer.append('<tr id="'+id+'_row"><td colspan="2"><div id="'+id+'" class="map'+(className ? ' '+className : '')+'"></div><div class="features_attributes"></div></td></tr>');
                 }
@@ -1390,6 +1525,8 @@ Formular = SpatialMap.Class ({
                     jQuery('#'+id).datepicker(options);
                     
                 } else if (type=='file') {
+                    debugger;
+                    this.maxUploadFileSize = typeof node.attr('maxfilesize') === 'undefined' ? 100 : parseInt(node.attr('maxfilesize'));
                     if (this.bootstrap === true) {
                         contentcontainer.append('<div id="'+id+'_row" class="form-group'+(className ? ' '+className : '')+'"><label for="'+id+'">'+node.attr('displayname')+(req ? ' <span class="required">*</span>':'')+'</label><input type="hidden" id="'+id+'" value="'+(value || '')+'"/><input type="hidden" id="'+id+'_org" value="'+(value || '')+'"/><div class="fileupload'+(req ? ' required-enabled':'')+'"><form id="form_'+id+'" method="POST" target="uploadframe_'+id+'" enctype="multipart/form-data" action="/jsp/modules/formular/upload.jsp"><input '+(postparam.disabled ? 'disabled':'')+' type="file" name="file_'+id+'" id="file_'+id+'" /><span class="filupload-delete" title="Fjern vedhæftet fil"></span><input type="hidden" name="callbackhandler" value="parent.formular.fileupload"/><input type="hidden" name="id" value="'+id+'"/><input type="hidden" name="sessionid" value="'+this.sessionid+'"/><input type="hidden" name="formular" value="'+this.name+'"/></form><iframe name="uploadframe_'+id+'" id="uploadframe_'+id+'" frameborder="0" style="display:none;"></iframe></div></div>');
                         contentcontainer.find('#'+id+'_row .filupload-delete').click(SpatialMap.Function.bind(this.deleteFileUpload,this,id)).hide();
@@ -3058,7 +3195,40 @@ Formular = SpatialMap.Class ({
                 jQuery('#messagebuttons').append(this.submitbuttons[i].e);
             }
         }
+        debugger;
+        if (this.miniMapObject != null) {
+            if (this.reportprofile == 'alt') {
+                this.reportprofile = this.miniMapObject.getProfile();
+            }
+            var tmpReportLayers = '';
+            if (this.reportlayers == 'default') {
+                var themeContainer = this.miniMapObject.getThemeContainer();
+                var allThemes = themeContainer.getThemesAsArray();
+                for (i = 0; i < allThemes.length; i++) {
+                    var currentTheme = allThemes[i];
+                    var isVisible = currentTheme.isVisible();
+                    if (this.miniMapReportAllLayers == 'true' || isVisible) {
+                        tmpReportLayers += currentTheme.name + ' ';
+                    }
+                    if (tmpReportLayers.length > 0) {
+                        //TODO - check how trim works
+                        //tmpReportLayers = tmpReportLayers.trim();
+                    } else {
+                        var baseThemes = themeContainer.getThemesAsArray("BaseLayer");
+                        if (baseThemes.length > 0) {
+                            tmpReportLayers = baseThemes[0].name;
+                        }
+                    }
 
+                    this.reportlayers = tmpReportLayers;
+                    debugger;
+                }
+
+            }
+            var tmp = null;
+            debugger;
+        }
+            
         if (this.pages.length > 0) {
             
             var pages = this.pages.slice(0);
@@ -3601,11 +3771,31 @@ Formular = SpatialMap.Class ({
         jQuery('#'+id+'_row .filupload-delete').hide();
     },
 
-    fileupload: function (filename,id,orgfilename) {
+    removeInvalidFileNotice: function (id) {
+        var invalidFileDiv = jQuery('#'+id+'_invalidfile');
+        if (invalidFileDiv.length > 0) {
+            invalidFileDiv.remove();
+        }
+    },
+
+    fileupload: function (filename,id,orgfilename,filesize) {
+        debugger;
         this.endFileUpload();
-        jQuery('#'+id).val(filename);
-        jQuery('#'+id+'_org').val(orgfilename);
-        jQuery('#'+id+'_row .filupload-delete').show();
+        this.removeInvalidFileNotice(id);
+        if (parseInt(filesize) <= this.maxUploadFileSize) {
+            jQuery('#'+id).val(filename);
+            jQuery('#'+id+'_org').val(orgfilename);
+            jQuery('#'+id+'_row .filupload-delete').show();
+        } else {
+            this.deleteFileUpload(id);
+            var inputRow = jQuery('#'+id+'_row');
+            var destinationTd = inputRow.children()[1];
+            jQuery('<div/>', {
+                id: id+'_invalidfile',
+                text: 'Filen overskride den maksimale størrelse!'
+            }).appendTo(destinationTd)
+
+        }
     },
     
     start: function (options) {
