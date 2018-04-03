@@ -2930,6 +2930,37 @@ Formular = SpatialMap.Class ({
     },
 
     submit: function () {
+        if (this.miniMapObject != null) {
+            if (this.reportprofile == 'alt') {
+                this.reportprofile = this.miniMapObject.getProfile();
+            }
+            var tmpReportLayers = '';
+            if (this.reportlayers == 'default') {
+                var themeContainer = this.miniMapObject.getThemeContainer();
+                var allThemes = themeContainer.getThemesAsArray();
+                for (i = 0; i < allThemes.length; i++) {
+                    var currentTheme = allThemes[i];
+                    var isVisible = currentTheme.isVisible();
+                    if (this.miniMapReportAllLayers == 'true' || isVisible) {
+                        tmpReportLayers += currentTheme.name + ' ';
+                    }
+                    if (tmpReportLayers.length > 0) {
+                        //TODO - check how trim works
+                        tmpReportLayers = tmpReportLayers.trim();
+                    } else {
+                        var baseThemes = themeContainer.getThemesAsArray("BaseLayer");
+                        if (baseThemes.length > 0) {
+                            tmpReportLayers = baseThemes[0].name;
+                        }
+                    }
+                    this.reportlayers = tmpReportLayers;
+                    debugger;
+                }
+            }
+            var tmp = null;
+            debugger;
+        }
+
         if (this.map && this.feature.length === 0 && this.featureRequired === true) {
             alert('Tegn på kortet og udfyld alle felter inden der trykkes på "Send"');
         } else {
@@ -3196,39 +3227,6 @@ Formular = SpatialMap.Class ({
             }
         }
         debugger;
-        if (this.miniMapObject != null) {
-            if (this.reportprofile == 'alt') {
-                this.reportprofile = this.miniMapObject.getProfile();
-            }
-            var tmpReportLayers = '';
-            if (this.reportlayers == 'default') {
-                var themeContainer = this.miniMapObject.getThemeContainer();
-                var allThemes = themeContainer.getThemesAsArray();
-                for (i = 0; i < allThemes.length; i++) {
-                    var currentTheme = allThemes[i];
-                    var isVisible = currentTheme.isVisible();
-                    if (this.miniMapReportAllLayers == 'true' || isVisible) {
-                        tmpReportLayers += currentTheme.name + ' ';
-                    }
-                    if (tmpReportLayers.length > 0) {
-                        //TODO - check how trim works
-                        //tmpReportLayers = tmpReportLayers.trim();
-                    } else {
-                        var baseThemes = themeContainer.getThemesAsArray("BaseLayer");
-                        if (baseThemes.length > 0) {
-                            tmpReportLayers = baseThemes[0].name;
-                        }
-                    }
-
-                    this.reportlayers = tmpReportLayers;
-                    debugger;
-                }
-
-            }
-            var tmp = null;
-            debugger;
-        }
-            
         if (this.pages.length > 0) {
             
             var pages = this.pages.slice(0);
@@ -4038,6 +4036,14 @@ Formular = SpatialMap.Class ({
                 }
             }
         }
+    },
+
+    paramHasValue: function (param) {
+        var curParam = this.currentParams[param];
+        if (typeof curParam !== 'undefined' && curParam != null && curParam.length > 0) {
+            return true;
+        }
+        return false;
     }
 
 });
